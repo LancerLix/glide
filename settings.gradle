@@ -1,6 +1,13 @@
-exec {
-  commandLine "git", "submodule", "update", "--init", "--recursive"
-}
+
+//exec {
+  //commandLine "git", "submodule", "update", "--init", "--recursive"
+//  executable "git"
+//  args "submodule"
+//  args "update"
+//  args "--init"
+//  args "--recursive"
+//}
+
 include ':library'
 include ':glide'
 include ':third_party:gif_decoder'
