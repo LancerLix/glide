@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -162,8 +163,8 @@ public class Glide implements ComponentCallbacks2 {
     return glide;
   }
 
-  // For testing.
-  static void tearDown() {
+  @VisibleForTesting
+  public static void tearDown() {
     glide = null;
   }
 
@@ -186,13 +187,13 @@ public class Glide implements ComponentCallbacks2 {
     DecodeFormat decodeFormat = defaultRequestOptions.getOptions().get(Downsampler.DECODE_FORMAT);
     bitmapPreFiller = new BitmapPreFiller(memoryCache, bitmapPool, decodeFormat);
 
-    Resources resources = context.getResources();
+    final Resources resources = context.getResources();
 
     Downsampler downsampler =
         new Downsampler(resources.getDisplayMetrics(), bitmapPool, arrayPool);
     ByteBufferGifDecoder byteBufferGifDecoder =
         new ByteBufferGifDecoder(context, bitmapPool, arrayPool);
-    registry = new Registry(context)
+    registry = new Registry()
         .register(ByteBuffer.class, new ByteBufferEncoder())
         .register(InputStream.class, new StreamEncoder(arrayPool))
         /* Bitmaps */
@@ -229,24 +230,36 @@ public class Glide implements ComponentCallbacks2 {
         .append(File.class, File.class, new UnitModelLoader.Factory<File>())
         /* Models */
         .register(new InputStreamRewinder.Factory(arrayPool))
-        .append(int.class, InputStream.class, new ResourceLoader.StreamFactory())
-        .append(int.class, ParcelFileDescriptor.class, new ResourceLoader.FileDescriptorFactory())
-        .append(Integer.class, InputStream.class, new ResourceLoader.StreamFactory())
-        .append(Integer.class, ParcelFileDescriptor.class,
-            new ResourceLoader.FileDescriptorFactory())
+        .append(int.class, InputStream.class, new ResourceLoader.StreamFactory(resources))
+        .append(
+                int.class,
+                ParcelFileDescriptor.class,
+                new ResourceLoader.FileDescriptorFactory(resources))
+        .append(Integer.class, InputStream.class, new ResourceLoader.StreamFactory(resources))
+        .append(
+                Integer.class,
+                ParcelFileDescriptor.class,
+                new ResourceLoader.FileDescriptorFactory(resources))
         .append(String.class, InputStream.class, new DataUrlLoader.StreamFactory())
         .append(String.class, InputStream.class, new StringLoader.StreamFactory())
         .append(String.class, ParcelFileDescriptor.class, new StringLoader.FileDescriptorFactory())
         .append(Uri.class, InputStream.class, new HttpUriLoader.Factory())
-        .append(Uri.class, InputStream.class, new AssetUriLoader.StreamFactory())
-        .append(Uri.class, ParcelFileDescriptor.class, new AssetUriLoader.FileDescriptorFactory())
-        .append(Uri.class, InputStream.class, new MediaStoreImageThumbLoader.Factory())
-        .append(Uri.class, InputStream.class, new MediaStoreVideoThumbLoader.Factory())
-        .append(Uri.class, InputStream.class, new UriLoader.StreamFactory())
-        .append(Uri.class, ParcelFileDescriptor.class, new UriLoader.FileDescriptorFactory())
+        .append(Uri.class, InputStream.class, new AssetUriLoader.StreamFactory(context.getAssets()))
+        .append(
+                Uri.class,
+                ParcelFileDescriptor.class,
+                new AssetUriLoader.FileDescriptorFactory(context.getAssets()))
+        .append(Uri.class, InputStream.class, new MediaStoreImageThumbLoader.Factory(context))
+        .append(Uri.class, InputStream.class, new MediaStoreVideoThumbLoader.Factory(context))
+        .append(
+            Uri.class,
+             InputStream.class,
+             new UriLoader.StreamFactory(context.getContentResolver()))
+        .append(Uri.class, ParcelFileDescriptor.class,
+             new UriLoader.FileDescriptorFactory(context.getContentResolver()))
         .append(Uri.class, InputStream.class, new UrlUriLoader.StreamFactory())
         .append(URL.class, InputStream.class, new UrlLoader.StreamFactory())
-        .append(Uri.class, File.class, new MediaStoreFileLoader.Factory())
+        .append(Uri.class, File.class, new MediaStoreFileLoader.Factory(context))
         .append(GlideUrl.class, InputStream.class, new HttpGlideUrlLoader.Factory())
         .append(byte[].class, ByteBuffer.class, new ByteArrayLoader.ByteBufferFactory())
         .append(byte[].class, InputStream.class, new ByteArrayLoader.StreamFactory())
@@ -286,6 +299,13 @@ public class Glide implements ComponentCallbacks2 {
 
   public ArrayPool getArrayPool() {
     return arrayPool;
+  }
+
+  /**
+   * @return The context associated with this instance.
+   */
+  public Context getContext() {
+    return glideContext.getBaseContext();
   }
 
   ConnectivityMonitorFactory getConnectivityMonitorFactory() {

@@ -265,6 +265,7 @@ public final class GlideBuilder {
     if (sourceExecutor == null) {
       sourceExecutor = GlideExecutor.newSourceExecutor();
     }
+
     if (diskCacheExecutor == null) {
       diskCacheExecutor = GlideExecutor.newDiskCacheExecutor();
     }
@@ -299,7 +300,8 @@ public final class GlideBuilder {
     }
 
     if (engine == null) {
-      engine = new Engine(memoryCache, diskCacheFactory, diskCacheExecutor, sourceExecutor);
+      engine = new Engine(memoryCache, diskCacheFactory, diskCacheExecutor, sourceExecutor,
+          GlideExecutor.newUnlimitedSourceExecutor());
     }
 
     return new Glide(
